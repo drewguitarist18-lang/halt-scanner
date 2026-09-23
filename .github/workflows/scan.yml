@@ -35,7 +35,7 @@ jobs:
               git add seen.json
               if ! git diff --cached --quiet; then
                 git commit -m "Update seen halts"
-                git push
+                git push || echo "seen push failed"
               fi
             fi
           done
