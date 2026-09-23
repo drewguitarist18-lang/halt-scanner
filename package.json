@@ -1,0 +1,8 @@
+{
+  "name": "halt-scanner-cloud",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "wrangler": "^4.137.0"
+  }
+}
