@@ -1,27 +1,51 @@
 name: live-halts
 
 on:
-  schedule:
-    - cron: '*/5 * * * *'
   workflow_dispatch:
+  schedule:
+    # Backup start if the live loop is not already running. The job itself checks every second.
+    - cron: '*/15 * * * *'
 
 permissions:
   contents: write
+  actions: write
+
+concurrency:
+  group: halt-live
+  cancel-in-progress: false
 
 jobs:
   scan:
     runs-on: ubuntu-latest
+    timeout-minutes: 350
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Check live halts
-        run: node scan-once.mjs
+      - name: Watch halts every second
+        run: |
+          git config user.name "halt-scanner"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          node scan-loop.mjs &
+          pid=$!
+          while kill -0 "$pid" 2>/dev/null; do
+            sleep 30
+            if [ -f seen.json ]; then
+              git add seen.json
+              if ! git diff --cached --quiet; then
+                git commit -m "Update seen halts"
+                git push
+              fi
+            fi
+          done
+          wait "$pid"
         env:
           DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
           CHANNEL_IDS: '1551595288777596931,1551607291378143314'
+          RUN_MS: '19800000'
       - name: Save seen halts
+        if: always()
         run: |
           git config user.name "halt-scanner"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
